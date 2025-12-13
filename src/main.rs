@@ -20,47 +20,28 @@ impl Trie {
         Self { nodes }
     }
 
-    fn add_node(&mut self) -> NodeId {
-        let id = self.nodes.len();
-        self.nodes.push(Node::default());
-        id
-    }
-
-    fn add_edge(&mut self, c: char, src: NodeId, dst: NodeId) {
-        if let Some(node) = self.nodes.get_mut(src) {
-            node.edges.insert(c, dst);
-        };
-    }
-
-    pub fn insert(&mut self, word: &str) {
+    fn insert(&mut self, word: &str) {
         let mut id = 0;
         for c in word.chars() {
             match self.nodes[id].edges.get(&c) {
-                Some(next) => {
-                    id = *next;
-                }
+                Some(next) => id = *next,
                 None => {
-                    let next = self.add_node();
-                    self.add_edge(c, id, next);
+                    let next = self.nodes.len();
+                    self.nodes.push(Node::default());
+                    self.nodes[id].edges.insert(c, next);
                     id = next;
                 }
             }
         }
-        if let Some(node) = self.nodes.get_mut(id) {
-            node.terminal = true;
-        }
+        self.nodes[id].terminal = true;
     }
 
-    pub fn contains(&self, word: &str) -> bool {
+    fn contains(&self, word: &str) -> bool {
         let mut id = 0;
         for c in word.chars() {
             match self.nodes[id].edges.get(&c) {
-                Some(next) => {
-                    id = *next;
-                }
-                None => {
-                    return false;
-                }
+                Some(next) => id = *next,
+                None => return false,
             }
         }
         self.nodes[id].terminal

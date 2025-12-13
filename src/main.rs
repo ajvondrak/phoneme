@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::BufReader, io::prelude::BufRead, path::Path};
 
 type NodeId = usize;
 
@@ -72,5 +72,21 @@ mod tests {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let path = Path::new("/usr/share/dict/words");
+    let file = match File::open(path) {
+        Err(why) => panic!("couldn't open {}: {}", path.display(), why),
+        Ok(file) => file,
+    };
+    let reader = BufReader::new(file);
+
+    let mut trie = Trie::new();
+    for word in reader.lines().map_while(Result::ok) {
+        if word.chars().all(|c| c.is_alphabetic() && c.is_lowercase()) {
+            trie.insert(&word);
+        };
+    }
+
+    dbg!(trie.contains("dog"));
+    dbg!(trie.contains("cat"));
+    dbg!(trie.contains("catdog"));
 }

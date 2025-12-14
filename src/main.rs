@@ -102,9 +102,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|err| format!("failed to read {}: {}", args.dict.display(), err))?;
 
     let digits: Vec<_> = args.digits.chars().collect();
-    let mut stack = vec![(String::new(), Trie::ROOT, 0)];
 
-    while let Some((phone_word, node, d)) = stack.pop() {
+    let mut pending = vec![(String::new(), Trie::ROOT, 0)];
+
+    while let Some((phone_word, node, d)) = pending.pop() {
         if d == digits.len() {
             if trie.is_terminal(node) {
                 println!("{}", phone_word);
@@ -116,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(&next_node) = trie.next(node, letter) {
                 let mut next_phone_word = phone_word.clone();
                 next_phone_word.push(letter);
-                stack.push((next_phone_word, next_node, d + 1));
+                pending.push((next_phone_word, next_node, d + 1));
             }
             if trie.is_terminal(node)
                 && let Some(&next_node) = trie.next(Trie::ROOT, letter)
@@ -124,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut next_phone_word = phone_word.clone();
                 next_phone_word.push(' ');
                 next_phone_word.push(letter);
-                stack.push((next_phone_word, next_node, d + 1));
+                pending.push((next_phone_word, next_node, d + 1));
             }
         }
     }

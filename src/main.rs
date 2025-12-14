@@ -46,27 +46,17 @@ impl Trie {
     }
 }
 
-const ABC: &[char] = &['a', 'b', 'c'];
-const DEF: &[char] = &['d', 'e', 'f'];
-const GHI: &[char] = &['g', 'h', 'i'];
-const JKL: &[char] = &['j', 'k', 'l'];
-const MNO: &[char] = &['m', 'n', 'o'];
-const PQRS: &[char] = &['p', 'q', 'r', 's'];
-const TUV: &[char] = &['t', 'u', 'v'];
-const WXYZ: &[char] = &['w', 'x', 'y', 'z'];
-const NO_LETTERS: &[char] = &[];
-
 fn phone_letters(digit: char) -> &'static [char] {
     match digit {
-        '2' => ABC,
-        '3' => DEF,
-        '4' => GHI,
-        '5' => JKL,
-        '6' => MNO,
-        '7' => PQRS,
-        '8' => TUV,
-        '9' => WXYZ,
-        _ => NO_LETTERS,
+        '2' => &['a', 'b', 'c'],
+        '3' => &['d', 'e', 'f'],
+        '4' => &['g', 'h', 'i'],
+        '5' => &['j', 'k', 'l'],
+        '6' => &['m', 'n', 'o'],
+        '7' => &['p', 'q', 'r', 's'],
+        '8' => &['t', 'u', 'v'],
+        '9' => &['w', 'x', 'y', 'z'],
+        _ => &[],
     }
 }
 

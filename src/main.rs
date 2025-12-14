@@ -1,5 +1,10 @@
 use clap::Parser;
-use std::{collections::HashMap, fs::File, io::BufReader, io::prelude::BufRead};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufReader, prelude::BufRead},
+    path::{Path, PathBuf},
+};
 
 type NodeId = usize;
 
@@ -20,6 +25,15 @@ impl Trie {
         let root = Node::default();
         let nodes = vec![root];
         Self { nodes }
+    }
+
+    fn read<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
+        let reader = BufReader::new(File::open(&path)?);
+        let mut trie = Self::new();
+        for word in reader.lines().map_while(Result::ok) {
+            trie.insert(&word);
+        }
+        Ok(trie)
     }
 
     fn next(&self, id: NodeId, c: char) -> Option<&NodeId> {
@@ -74,48 +88,38 @@ fn phone_number(s: &str) -> Result<String, String> {
 struct Args {
     /// Path to dictionary file, one word per line
     #[arg(short, long, default_value = "/usr/share/dict/words")]
-    dict: std::path::PathBuf,
+    dict: PathBuf,
 
     /// Phone number to match, any string of digits 0-9
     #[arg(value_parser = phone_number)]
     digits: String,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let file = match File::open(&args.dict) {
-        Err(err) => panic!("couldn't open {}: {}", args.dict.display(), err),
-        Ok(file) => file,
-    };
-    let reader = BufReader::new(file);
-
-    let mut words = Trie::new();
-    for word in reader.lines().map_while(Result::ok) {
-        if word.len() > 1 && word.chars().all(|c| c.is_alphabetic() && c.is_lowercase()) {
-            words.insert(&word);
-        };
-    }
+    let trie = Trie::read(&args.dict)
+        .map_err(|err| format!("failed to read {}: {}", args.dict.display(), err))?;
 
     let digits: Vec<_> = args.digits.chars().collect();
     let mut stack = vec![(String::new(), Trie::ROOT, 0)];
 
     while let Some((phone_word, node, d)) = stack.pop() {
         if d == digits.len() {
-            if words.is_terminal(node) {
+            if trie.is_terminal(node) {
                 println!("{}", phone_word);
             }
             continue;
         }
         let digit = digits[d];
         for &letter in phone_letters(digit) {
-            if let Some(&next_node) = words.next(node, letter) {
+            if let Some(&next_node) = trie.next(node, letter) {
                 let mut next_phone_word = phone_word.clone();
                 next_phone_word.push(letter);
                 stack.push((next_phone_word, next_node, d + 1));
             }
-            if words.is_terminal(node)
-                && let Some(&next_node) = words.next(Trie::ROOT, letter)
+            if trie.is_terminal(node)
+                && let Some(&next_node) = trie.next(Trie::ROOT, letter)
             {
                 let mut next_phone_word = phone_word.clone();
                 next_phone_word.push(' ');
@@ -124,4 +128,6 @@ fn main() {
             }
         }
     }
+
+    Ok(())
 }

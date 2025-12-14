@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{collections::HashMap, fs::File, io::BufReader, io::prelude::BufRead, path::Path};
 
 type NodeId = usize;
@@ -14,16 +13,26 @@ struct Node {
 }
 
 impl Trie {
+    const ROOT: NodeId = 0;
+
     fn new() -> Self {
         let root = Node::default();
         let nodes = vec![root];
         Self { nodes }
     }
 
+    fn next(&self, id: NodeId, c: char) -> Option<&NodeId> {
+        self.nodes.get(id)?.edges.get(&c)
+    }
+
+    fn is_terminal(&self, id: NodeId) -> bool {
+        self.nodes.get(id).is_some_and(|node| node.terminal)
+    }
+
     fn insert(&mut self, word: &str) {
-        let mut id = 0;
+        let mut id = Self::ROOT;
         for c in word.chars() {
-            match self.nodes[id].edges.get(&c) {
+            match self.next(id, c) {
                 Some(next) => id = *next,
                 None => {
                     let next = self.nodes.len();
@@ -34,48 +43,6 @@ impl Trie {
             }
         }
         self.nodes[id].terminal = true;
-    }
-
-    fn contains(&self, word: &str) -> bool {
-        let mut id = 0;
-        for c in word.chars() {
-            match self.nodes[id].edges.get(&c) {
-                Some(next) => id = *next,
-                None => return false,
-            }
-        }
-        self.nodes[id].terminal
-    }
-
-    fn phone_words(&self, phone_number: &str) {
-        let digits: Vec<_> = phone_number.chars().collect();
-        let mut stack: Vec<(String, NodeId, usize)> = Vec::new();
-        stack.push((String::new(), 0, 0));
-
-        while let Some((phone_word, id, d)) = stack.pop() {
-            if d == digits.len() {
-                if self.nodes[id].terminal {
-                    println!("{}", phone_word);
-                }
-                continue;
-            }
-            let digit = digits[d];
-            for letter in t9_letters(digit) {
-                if let Some(&next_id) = self.nodes[id].edges.get(letter) {
-                    let mut next_phone_word = phone_word.clone();
-                    next_phone_word.push(*letter);
-                    stack.push((next_phone_word, next_id, d + 1));
-                }
-                if self.nodes[id].terminal
-                    && let Some(&next_id) = self.nodes[0].edges.get(letter)
-                {
-                    let mut next_phone_word = phone_word.clone();
-                    next_phone_word.push(' ');
-                    next_phone_word.push(*letter);
-                    stack.push((next_phone_word, next_id, d + 1));
-                }
-            }
-        }
     }
 }
 
@@ -90,7 +57,7 @@ static TUV: &[char] = &['t', 'u', 'v'];
 static WXYZ: &[char] = &['w', 'x', 'y', 'z'];
 static ZERO: &[char] = &[];
 
-fn t9_letters(digit: char) -> &'static [char] {
+fn phone_letters(digit: char) -> &'static [char] {
     match digit {
         '1' => ONE,
         '2' => ABC,
@@ -106,43 +73,48 @@ fn t9_letters(digit: char) -> &'static [char] {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn trie_basics() {
-        let mut trie = Trie::new();
-        trie.insert("cat");
-        trie.insert("cap");
-        trie.insert("cape");
-        trie.insert("caper");
-
-        assert!(trie.contains("cat"));
-        assert!(trie.contains("cap"));
-        assert!(trie.contains("cape"));
-        assert!(trie.contains("caper"));
-        assert!(!trie.contains("car"));
-        assert!(!trie.contains("catch"));
-        assert!(!trie.contains("calm"));
-        assert!(!trie.contains("dog"));
-    }
-}
-
 fn main() {
-    let path = Path::new("/usr/share/dict/words");
+    let path = Path::new("/usr/share/dict/words"); // TODO: optionally get this from argv
     let file = match File::open(path) {
-        Err(why) => panic!("couldn't open {}: {}", path.display(), why),
+        Err(err) => panic!("couldn't open {}: {}", path.display(), err),
         Ok(file) => file,
     };
     let reader = BufReader::new(file);
 
-    let mut trie = Trie::new();
+    let mut words = Trie::new();
     for word in reader.lines().map_while(Result::ok) {
         if word.len() > 1 && word.chars().all(|c| c.is_alphabetic() && c.is_lowercase()) {
-            trie.insert(&word);
+            words.insert(&word);
         };
     }
 
-    trie.phone_words("8737878"); // "use rust", but also some others like "us erupt", "user tst"
+    let phone_number = "8737878"; // TODO: get this from argv
+
+    let digits: Vec<_> = phone_number.chars().collect();
+    let mut stack = vec![(String::new(), Trie::ROOT, 0)];
+
+    while let Some((phone_word, node, d)) = stack.pop() {
+        if d == digits.len() {
+            if words.is_terminal(node) {
+                println!("{}", phone_word);
+            }
+            continue;
+        }
+        let digit = digits[d];
+        for &letter in phone_letters(digit) {
+            if let Some(&next_node) = words.next(node, letter) {
+                let mut next_phone_word = phone_word.clone();
+                next_phone_word.push(letter);
+                stack.push((next_phone_word, next_node, d + 1));
+            }
+            if words.is_terminal(node)
+                && let Some(&next_node) = words.next(Trie::ROOT, letter)
+            {
+                let mut next_phone_word = phone_word.clone();
+                next_phone_word.push(' ');
+                next_phone_word.push(letter);
+                stack.push((next_phone_word, next_node, d + 1));
+            }
+        }
+    }
 }

@@ -76,7 +76,7 @@ fn phone_letters(digit: char) -> &'static [char] {
 }
 
 fn phone_number(s: &str) -> Result<String, String> {
-    if s.chars().all(|d| d.is_digit(10)) {
+    if s.chars().all(|d| d.is_ascii_digit()) {
         Ok(s.to_string())
     } else {
         Err("must be a string of digits 0-9".to_string())

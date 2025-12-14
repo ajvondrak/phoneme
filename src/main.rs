@@ -30,8 +30,8 @@ impl Trie {
     fn read<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
         let reader = BufReader::new(File::open(&path)?);
         let mut trie = Self::new();
-        for word in reader.lines().map_while(Result::ok) {
-            trie.insert(&word);
+        for word in reader.lines() {
+            trie.insert(&word?);
         }
         Ok(trie)
     }

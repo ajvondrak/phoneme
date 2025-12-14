@@ -46,20 +46,18 @@ impl Trie {
     }
 }
 
-static ONE: &[char] = &[];
-static ABC: &[char] = &['a', 'b', 'c'];
-static DEF: &[char] = &['d', 'e', 'f'];
-static GHI: &[char] = &['g', 'h', 'i'];
-static JKL: &[char] = &['j', 'k', 'l'];
-static MNO: &[char] = &['m', 'n', 'o'];
-static PQRS: &[char] = &['p', 'q', 'r', 's'];
-static TUV: &[char] = &['t', 'u', 'v'];
-static WXYZ: &[char] = &['w', 'x', 'y', 'z'];
-static ZERO: &[char] = &[];
+const ABC: &[char] = &['a', 'b', 'c'];
+const DEF: &[char] = &['d', 'e', 'f'];
+const GHI: &[char] = &['g', 'h', 'i'];
+const JKL: &[char] = &['j', 'k', 'l'];
+const MNO: &[char] = &['m', 'n', 'o'];
+const PQRS: &[char] = &['p', 'q', 'r', 's'];
+const TUV: &[char] = &['t', 'u', 'v'];
+const WXYZ: &[char] = &['w', 'x', 'y', 'z'];
+const NO_LETTERS: &[char] = &[];
 
 fn phone_letters(digit: char) -> &'static [char] {
     match digit {
-        '1' => ONE,
         '2' => ABC,
         '3' => DEF,
         '4' => GHI,
@@ -68,8 +66,7 @@ fn phone_letters(digit: char) -> &'static [char] {
         '7' => PQRS,
         '8' => TUV,
         '9' => WXYZ,
-        '0' => ZERO,
-        _ => panic!("not a digit: {:?}", digit),
+        _ => NO_LETTERS,
     }
 }
 

@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fs::File, io::BufReader, io::prelude::BufRead, path::Path};
+use clap::Parser;
+use std::{collections::HashMap, fs::File, io::BufReader, io::prelude::BufRead};
 
 type NodeId = usize;
 
@@ -60,10 +61,31 @@ fn phone_letters(digit: char) -> &'static [char] {
     }
 }
 
+fn phone_number(s: &str) -> Result<String, String> {
+    if s.chars().all(|d| d.is_digit(10)) {
+        Ok(s.to_string())
+    } else {
+        Err("must be a string of digits 0-9".to_string())
+    }
+}
+
+/// Searches for phone words that can be spelled from a given phone number
+#[derive(clap::Parser)]
+struct Args {
+    /// Path to dictionary file, one word per line
+    #[arg(short, long, default_value = "/usr/share/dict/words")]
+    dict: std::path::PathBuf,
+
+    /// Phone number to match, any string of digits 0-9
+    #[arg(value_parser = phone_number)]
+    digits: String,
+}
+
 fn main() {
-    let path = Path::new("/usr/share/dict/words"); // TODO: optionally get this from argv
-    let file = match File::open(path) {
-        Err(err) => panic!("couldn't open {}: {}", path.display(), err),
+    let args = Args::parse();
+
+    let file = match File::open(&args.dict) {
+        Err(err) => panic!("couldn't open {}: {}", args.dict.display(), err),
         Ok(file) => file,
     };
     let reader = BufReader::new(file);
@@ -75,9 +97,7 @@ fn main() {
         };
     }
 
-    let phone_number = "8737878"; // TODO: get this from argv
-
-    let digits: Vec<_> = phone_number.chars().collect();
+    let digits: Vec<_> = args.digits.chars().collect();
     let mut stack = vec![(String::new(), Trie::ROOT, 0)];
 
     while let Some((phone_word, node, d)) = stack.pop() {
